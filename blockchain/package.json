@@ -1,6 +1,6 @@
 { 
   "scripts":{
-    "compile": "npx hardhat comile",
+    "compile": "npx hardhat compile",
     "start":"npx hardhat node",
     "test": "npx hardhat test"
   },

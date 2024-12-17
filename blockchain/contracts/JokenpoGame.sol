@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.17;
 
-contract Jokenpo {
-    enum Options { NONE, ROCK, PAPER, SCISSOR }
+import "./JKPLibrary.sol";
+import './IJokenpo.sol';
 
-    Options private choice1 = Options.NONE;
-    Options private choice2 = Options.NONE;
+contract Jokenpo is IJokenpo {
+
+    JKPLibrary.Options private choice1 = JKPLibrary.Options.NONE;
+    JKPLibrary.Options private choice2 = JKPLibrary.Options.NONE;
     address private player1;
     address private player2;
     string private result;
@@ -14,12 +16,7 @@ contract Jokenpo {
 
     address payable private immutable owner;
 
-    Player[] public winners;
-
-    struct Player{
-        address wallet;
-        uint32 wins;
-    }
+    JKPLibrary.Player[] public winners;
 
     constructor(){
         owner = payable(msg.sender);
@@ -34,13 +31,13 @@ contract Jokenpo {
     }
 
     function setBid(uint256 newBid) external{
-        require(msg.sender == owner, "You do not have permission to do it");
+        require(tx.origin == owner, "You do not have permission to do it");
         require(player1 == address(0), "You can not change the bid with a game in progress");
         bid = newBid;
     }
 
     function setComission(uint8 newComission) external{
-        require(msg.sender == owner, "You do not have permission to do it");
+        require(tx.origin == owner, "You do not have permission to do it");
         require(player1 == address(0), "You can not change the comission with a game in progress");
         comission = newComission;
     }
@@ -57,11 +54,11 @@ contract Jokenpo {
             }
         }
 
-        winners.push(Player(winner, 1));
+        winners.push(JKPLibrary.Player(winner, 1));
     }
 
-    function getBallance() public view returns(uint) {
-        require(msg.sender == owner, "Not alowed");
+    function getBalance() external view returns(uint) {
+        require(tx.origin == owner, "Not alowed");
         return address(this).balance;
     }
 
@@ -75,58 +72,58 @@ contract Jokenpo {
         result = newResult;
         player1 = address(0);
         player2 = address(0);
-        choice1 = Options.NONE;
-        choice2 = Options.NONE;
+        choice1 = JKPLibrary.Options.NONE;
+        choice2 = JKPLibrary.Options.NONE;
     }
 
 
-    function play(Options newChoice) external payable {
-        require(msg.sender != owner, "The owner can not play");
-        require(newChoice != Options.NONE, "Invalid choice");
+    function play(JKPLibrary.Options newChoice) external payable {
+        require(tx.origin != owner, "The owner can not play");
+        require(newChoice != JKPLibrary.Options.NONE, "Invalid choice");
         require(msg.value >= bid, "Invalid bid");
 
         // Caso 1: Primeiro jogador faz a escolha
         if (player1 == address(0)) {
-            player1 = msg.sender;
+            player1 = tx.origin;
             choice1 = newChoice;
             result = "Player 1 chooses an option. Waiting for Player 2.";
             return;
         }
 
         // Caso 2: Segundo jogador faz a escolha
-        if (player2 == address(0) && msg.sender != player1) {
-            player2 = msg.sender;
+        if (player2 == address(0) && tx.origin != player1) {
+            player2 = tx.origin;
             choice2 = newChoice;
 
             // Avalia o resultado do jogo
-            if (choice1 == Options.ROCK && choice2 == Options.SCISSOR) {
+            if (choice1 == JKPLibrary.Options.ROCK && choice2 == JKPLibrary.Options.SCISSOR) {
                 finishGame("Rock breaks scissor, Player 1 won.", player1);
-            } else if (choice1 == Options.PAPER && choice2 == Options.ROCK) {
+            } else if (choice1 == JKPLibrary.Options.PAPER && choice2 == JKPLibrary.Options.ROCK) {
                 finishGame("Paper covers the Rock, Player 1 won.", player1);
-            } else if (choice1 == Options.SCISSOR && choice2 == Options.PAPER) {
+            } else if (choice1 == JKPLibrary.Options.SCISSOR && choice2 == JKPLibrary.Options.PAPER) {
                 finishGame("Scissor cuts the paper, Player 1 won.", player1);
-            } else if (choice1 == Options.SCISSOR && choice2 == Options.ROCK) {
+            } else if (choice1 == JKPLibrary.Options.SCISSOR && choice2 == JKPLibrary.Options.ROCK) {
                 finishGame("Rock breaks scissor, Player 2 won.", player2);
-            } else if (choice1 == Options.ROCK && choice2 == Options.PAPER) {
+            } else if (choice1 == JKPLibrary.Options.ROCK && choice2 == JKPLibrary.Options.PAPER) {
                 finishGame("Paper covers the Rock, Player 2 won.", player2);
-            } else if (choice1 == Options.PAPER && choice2 == Options.SCISSOR) {
+            } else if (choice1 == JKPLibrary.Options.PAPER && choice2 == JKPLibrary.Options.SCISSOR) {
                 finishGame("Scissor cuts the paper, Player 2 won.", player2);
             } else {
                 player1 = address(0);
-                choice1 = Options.NONE;
+                choice1 = JKPLibrary.Options.NONE;
                 result = "Draw Game, the prie was doubled.";
             }
             return;
         }
 
         // Caso 3: Impede o mesmo jogador de jogar novamente
-        require(msg.sender != player1 && msg.sender != player2, "You have already played");
+        require(tx.origin != player1 && tx.origin != player2, "You have already played");
     }
 
-    function getLeadersBoard() external view returns(Player[] memory){
+    function getLeadersBoard() external view returns(JKPLibrary.Player[] memory){
         if(winners.length < 2) return winners;
 
-        Player[] memory arr = new Player[](winners.length);
+        JKPLibrary.Player[] memory arr = new JKPLibrary.Player[](winners.length);
         for(uint i=0; i < winners.length; i++){
             arr[i] = winners[i];
         }
@@ -134,7 +131,7 @@ contract Jokenpo {
     for(uint i=0; i < arr.length; i++){
         for(uint j=0; j < arr.length; j++){
             if(arr[i].wins < arr[j].wins){
-                Player memory change = arr[i];
+                JKPLibrary.Player memory change = arr[i];
                 arr[i] = arr[j];
                 arr[j] = change;
             }
