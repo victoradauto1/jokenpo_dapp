@@ -1,21 +1,44 @@
 'use client';
 
 import "bootstrap/dist/css/bootstrap.min.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {doLogin} from "../Web3Services";
 
 
 function Login() {
+  
+  const router = useRouter();
+  useEffect(() => {
+    const account = localStorage.getItem("account");
+    const isAdmin = localStorage.getItem("isAdmin");
+
+    if (account && isAdmin !== null) {
+   
+        if (isAdmin === "true") {
+            router.push("/admin");
+        } else {
+            router.push("/game");
+        }
+    }
+}, [router]);
   const [message, setMessage] = useState("");
-  const [captcha, setCaptcha] = useState("");
+
 
   function onBtnClick() {
     setMessage("Logging in... wait... ");
     doLogin()
-      .then(result => alert(JSON.stringify(result)))
-      .catch(err => setMessage(err.message))
-  }
+        .then(result => {
+            alert(JSON.stringify(result));
 
+            if (localStorage.getItem("isAdmin") === "true") {
+                router.push("/admin");
+            } else {
+                router.push("/game");
+            }
+        })
+        .catch(err => setMessage(err.message));
+}
   return (
     <div className="d-flex flex-column min-vh-100 bg-dark text-white">
       {/* Menu no topo */}
@@ -57,8 +80,6 @@ function Login() {
               />
               Login with MetaMask
             </a>
-            <div style={{ display: "inline-flex" }}>
-            </div>
           </p>
           {message}
         </div>
