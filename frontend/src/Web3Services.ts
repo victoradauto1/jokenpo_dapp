@@ -153,3 +153,17 @@ export async function getLeaderboard(): Promise<LeaderBoard>{
     players, result
   } as LeaderBoard
 }
+
+export async function getBestPlayers(): Promise<LeaderBoard>{
+  const web3 = getWeb3();
+  const contract = getContract(web3);
+  return await contract.methods.getLeaderboard().call();
+}
+
+export function listenEvent(callBack: Function){
+  const web3 = new Web3(`${process.env.NEXT_PUBLIC_WEBSOCKET_SERVER}`);
+  const contract = getContract(web3);
+
+  contract.events.Played({fromBlock: "latest"})
+    .on("data", (event: any)=> callBack(event.returnValues.result))
+}

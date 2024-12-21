@@ -3,8 +3,8 @@
 import Header from "@/components/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useState, useEffect } from "react";
-import { LeaderBoard, Options, getLeaderboard, getResult, play } from "../../Web3Services";
-import { error } from "console";
+import { LeaderBoard, Options, getLeaderboard, getBestPlayers, play, listenEvent } from "../../Web3Services";
+
 
 function Game() {
   const [message, setMessage] = useState("");
@@ -14,14 +14,19 @@ function Game() {
     getLeaderboard()
       .then((leaderboard) => setLeaderboard(leaderboard))
       .catch((error: Error) => setMessage(error.message));
+  
+    listenEvent((result: string) => {
+      getBestPlayers()
+        .then((players) => setLeaderboard({ players, result } as LeaderBoard))
+        .catch((err: Error) => setMessage(err.message));
+    });
   }, []);
+  
   
 
   function onPlay(option: Options){
     setLeaderboard({...leaderboard, result: "Sending your choice..."});
     play(option)
-      .then((tx: string) => getResult())
-      .then((result: string) => setLeaderboard({...leaderboard, result}))
       .catch((error:Error) => setMessage(error.message));
   }
 
@@ -46,7 +51,7 @@ function Game() {
           <div className="row">
             <div className="col-sm-6">
               <h4 className="mb-3">Best Players</h4>
-              <div className="card card-body border-0 shadow">
+              <div className="card card-body border-0 shadow table-wrapper table-responsive">
                 <table className="table tabble-hover">
                   <thead>
                     <tr>
